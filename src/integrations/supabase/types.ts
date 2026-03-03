@@ -145,6 +145,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_ai_settings: {
+        Row: {
+          created_at: string
+          gemini_api_key: string | null
+          id: string
+          openai_api_key: string | null
+          provider: string
+          updated_at: string
+          use_custom_key: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gemini_api_key?: string | null
+          id?: string
+          openai_api_key?: string | null
+          provider?: string
+          updated_at?: string
+          use_custom_key?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gemini_api_key?: string | null
+          id?: string
+          openai_api_key?: string | null
+          provider?: string
+          updated_at?: string
+          use_custom_key?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_usage: {
+        Row: {
+          created_at: string
+          id: string
+          last_reset_at: string
+          requests_count: number
+          tokens_used: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_reset_at?: string
+          requests_count?: number
+          tokens_used?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_reset_at?: string
+          requests_count?: number
+          tokens_used?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
