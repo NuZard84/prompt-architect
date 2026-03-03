@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Download, RotateCcw, Save, Check } from "lucide-react";
+import { Copy, Download, RotateCcw, Save, Check, Loader2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PromptState } from "./PromptWizard";
 
 type Props = {
@@ -12,100 +13,86 @@ type Props = {
   onReset: () => void;
 };
 
-function buildPrompt(state: PromptState): string {
-  const lines: string[] = [];
-
-  lines.push(`# AI Prompt — ${state.intent}`);
-  lines.push(`**Target Agent:** ${state.targetAgent}`);
-  lines.push(`**Output Format:** ${state.outputFormat}`);
-  lines.push(`**Context Strictness:** ${state.contextStrictness}`);
-  lines.push("");
-
-  lines.push("## Objective");
-  lines.push(state.rawInput);
-  lines.push("");
-
-  lines.push("## Current Context");
-  lines.push(`- Intent Type: ${state.intent}`);
-  if (state.techStack.length) lines.push(`- Tech Stack: ${state.techStack.join(", ")}`);
-  lines.push("");
-
-  lines.push("## Target Outcome");
-  lines.push(`Deliver a ${state.outputFormat.toLowerCase()} that addresses the ${state.intent.toLowerCase()} described above.`);
-  lines.push("");
-
-  if (state.constraints.length) {
-    lines.push("## Constraints");
-    state.constraints.forEach((c) => lines.push(`- ${c}`));
-    lines.push("");
-  }
-
-  lines.push("## Implementation Plan");
-  lines.push("1. Analyze the current state and identify affected components");
-  lines.push("2. Plan the changes with minimal disruption");
-  lines.push("3. Implement changes following the specified constraints");
-  lines.push("4. Validate against edge cases and requirements");
-  lines.push("5. Document changes and update relevant tests");
-  lines.push("");
-
-  lines.push("## Code-Level Instructions");
-  lines.push(`- Follow ${state.contextStrictness.toLowerCase()} approach`);
-  if (state.techStack.length) lines.push(`- Use the following stack: ${state.techStack.join(", ")}`);
-  lines.push("- Ensure all changes are type-safe and well-documented");
-  lines.push("- Include inline comments for complex logic");
-  lines.push("");
-
-  if (state.additionalOptions.includes("Risk analysis") || state.additionalOptions.includes("Edge cases")) {
-    lines.push("## Risk & Edge Cases");
-    if (state.additionalOptions.includes("Risk analysis")) {
-      lines.push("- Identify potential regressions");
-      lines.push("- Consider concurrency and race conditions");
-    }
-    if (state.additionalOptions.includes("Edge cases")) {
-      lines.push("- Handle empty/null/undefined states");
-      lines.push("- Consider boundary conditions and error paths");
-    }
-    lines.push("");
-  }
-
-  if (state.additionalOptions.includes("Test plan")) {
-    lines.push("## Testing Plan");
-    lines.push("- Unit tests for all new/modified functions");
-    lines.push("- Integration tests for affected workflows");
-    lines.push("- Edge case coverage for error handling");
-    lines.push("");
-  }
-
-  if (state.additionalOptions.includes("Rollback plan")) {
-    lines.push("## Rollback Plan");
-    lines.push("- Document all changes for easy reversion");
-    lines.push("- Ensure database migrations are reversible");
-    lines.push("- Test rollback procedure before deployment");
-    lines.push("");
-  }
-
-  lines.push("## Final Validation Checklist");
-  lines.push("- [ ] All changes compile without errors");
-  lines.push("- [ ] Existing tests pass");
-  lines.push("- [ ] New tests added and passing");
-  lines.push("- [ ] No security vulnerabilities introduced");
-  lines.push("- [ ] Performance impact assessed");
-  lines.push("- [ ] Documentation updated");
-
-  return lines.join("\n");
+function formatStructured(s: Record<string, string>): string {
+  const sectionMap: Record<string, string> = {
+    objective: "Objective",
+    current_context: "Current Context",
+    target_outcome: "Target Outcome",
+    constraints: "Constraints",
+    implementation_plan: "Implementation Plan",
+    code_level_instructions: "Code-Level Instructions",
+    risk_edge_cases: "Risk & Edge Cases",
+    testing_plan: "Testing Plan",
+    rollback_plan: "Rollback Plan",
+    validation_checklist: "Final Validation Checklist",
+  };
+  return Object.entries(sectionMap)
+    .map(([key, title]) => `## ${title}\n${s[key] || "N/A"}`)
+    .join("\n\n");
 }
 
 export function StepGenerate({ state, update, onReset }: Props) {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [provider, setProvider] = useState<string>("");
+  const [error, setError] = useState<string>("");
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   useEffect(() => {
     if (!state.generatedOutput) {
-      update({ generatedOutput: buildPrompt(state) });
+      generateWithAI();
     }
   }, []);
+
+  const generateWithAI = async () => {
+    if (!session?.access_token) return;
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-prompt`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            rawInput: state.rawInput,
+            intent: state.intent,
+            targetAgent: state.targetAgent,
+            outputFormat: state.outputFormat,
+            techStack: state.techStack,
+            contextStrictness: state.contextStrictness,
+            constraints: state.constraints,
+            additionalOptions: state.additionalOptions,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "AI generation failed" }));
+        throw new Error(err.error || "AI generation failed");
+      }
+
+      const data = await res.json();
+      const output = data.structured
+        ? `# AI Prompt — ${state.intent}\n**Target Agent:** ${state.targetAgent}\n**Output Format:** ${state.outputFormat}\n\n${formatStructured(data.structured)}`
+        : data.raw || "No output generated";
+
+      update({ generatedOutput: output });
+      setProvider(data.provider === "custom" ? "Gemini (Your Key)" : data.provider === "platform_fallback" ? "Gemini (Platform — Fallback)" : "Gemini (Platform Key)");
+    } catch (e: any) {
+      console.error("AI generation error:", e);
+      setError(e.message || "Failed to generate prompt");
+      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(state.generatedOutput);
@@ -149,8 +136,42 @@ export function StepGenerate({ state, update, onReset }: Props) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground text-sm">Generating with AI...</p>
+      </div>
+    );
+  }
+
+  if (error && !state.generatedOutput) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <p className="text-destructive text-sm">{error}</p>
+        <Button onClick={generateWithAI}>Retry</Button>
+        <Button variant="outline" onClick={onReset}>Start Over</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {provider && (
+        <TooltipProvider>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>Using: {provider}</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-help underline decoration-dotted">ℹ️</span>
+              </TooltipTrigger>
+              <TooltipContent>Platform key is free during beta.</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+      )}
+
       <div className="rounded-xl border bg-card overflow-hidden">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-semibold">Generated Prompt</span>
@@ -176,6 +197,9 @@ export function StepGenerate({ state, update, onReset }: Props) {
           <RotateCcw className="mr-2 h-4 w-4" /> New Prompt
         </Button>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={generateWithAI}>
+            <Sparkles className="mr-2 h-4 w-4" /> Regenerate
+          </Button>
           <Button variant="outline" onClick={() => handleDownload("txt")}>
             Download .txt
           </Button>
