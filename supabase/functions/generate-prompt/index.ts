@@ -7,6 +7,19 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const REQUIRED_JSON_KEYS = [
+  "objective",
+  "current_context",
+  "target_outcome",
+  "constraints",
+  "implementation_plan",
+  "code_level_instructions",
+  "risk_edge_cases",
+  "testing_plan",
+  "rollback_plan",
+  "validation_checklist",
+];
+
 const SYSTEM_PROMPT = `You are a senior AI Prompt Engineering Architect.
 Convert user explanations into structured, production-grade prompts.
 Never be vague. Always structured. Never hallucinate missing context.
@@ -25,8 +38,7 @@ You MUST return a valid JSON object with exactly these keys:
   "validation_checklist": "string"
 }
 
-Each value should be detailed, actionable, and production-grade.
-Return ONLY the JSON object, no markdown fences, no extra text.`;
+Return ONLY the JSON object.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -34,56 +46,58 @@ serve(async (req) => {
   }
 
   try {
+    // ------------------------
+    // 1️⃣ AUTH VALIDATION
+    // ------------------------
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("Unauthorized", 401);
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Supabase environment variables missing");
     }
 
-    const userId = claimsData.claims.sub;
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await userClient.auth.getUser();
+
+    if (authError || !user) {
+      return jsonError("Unauthorized", 401);
+    }
+
+    const userId = user.id;
+
+    // ------------------------
+    // 2️⃣ REQUEST BODY
+    // ------------------------
+
     const body = await req.json();
-    const { rawInput, intent, targetAgent, outputFormat, techStack, contextStrictness, constraints, additionalOptions } = body;
+    const {
+      rawInput,
+      intent,
+      targetAgent,
+      outputFormat,
+      techStack,
+      contextStrictness,
+      constraints,
+      additionalOptions,
+    } = body;
 
     if (!rawInput) {
-      return new Response(JSON.stringify({ error: "rawInput is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonError("rawInput is required", 400);
     }
 
-    // Check user AI settings for custom key
-    const { data: aiSettings } = await supabase
-      .from("user_ai_settings")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-
-    let useCustomKey = false;
-    let customGeminiKey: string | null = null;
-
-    if (aiSettings?.use_custom_key && aiSettings?.gemini_api_key) {
-      useCustomKey = true;
-      customGeminiKey = aiSettings.gemini_api_key;
-    }
-
-    // Build the user message
     const userMessage = `
 Intent: ${intent || "General"}
 Target Agent: ${targetAgent || "General"}
@@ -93,84 +107,73 @@ Context Strictness: ${contextStrictness || "Balanced"}
 Constraints: ${constraints?.join(", ") || "None"}
 Additional Options: ${additionalOptions?.join(", ") || "None"}
 
-User's raw input:
+User raw input:
 ${rawInput}
 `;
+
+    // ------------------------
+    // 3️⃣ LOAD AI SETTINGS
+    // ------------------------
+
+    const { data: aiSettings } = await userClient
+      .from("user_ai_settings")
+      .select("use_custom_key, gemini_api_key")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const useCustomKey = aiSettings?.use_custom_key && aiSettings?.gemini_api_key;
+
+    // ------------------------
+    // 4️⃣ AI CALL
+    // ------------------------
 
     let aiResponse: string;
     let providerUsed = "platform";
 
-    if (useCustomKey && customGeminiKey) {
-      // Use custom Gemini key directly
-      providerUsed = "custom";
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${customGeminiKey}`;
-      const geminiRes = await fetch(geminiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: SYSTEM_PROMPT + "\n\n" + userMessage }] }],
-          generationConfig: { temperature: 0.2, topP: 0.9, maxOutputTokens: 4096 },
-        }),
-      });
-
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        console.error("Custom Gemini key failed:", geminiRes.status, errText);
-        // Fallback to platform key
-        providerUsed = "platform_fallback";
+    if (useCustomKey) {
+      try {
+        aiResponse = await callGemini(aiSettings!.gemini_api_key!, SYSTEM_PROMPT, userMessage);
+        providerUsed = "custom";
+      } catch (err) {
+        console.error("Custom key failed, fallback:", err);
         aiResponse = await callPlatformAI(userMessage);
-      } else {
-        const geminiData = await geminiRes.json();
-        aiResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        providerUsed = "platform_fallback";
       }
     } else {
-      // Use Lovable AI Gateway (platform key)
       aiResponse = await callPlatformAI(userMessage);
     }
 
-    // Track usage
-    const serviceClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // ------------------------
+    // 5️⃣ SAFE JSON PARSE
+    // ------------------------
 
-    await serviceClient.rpc("", {}).catch(() => {}); // no-op
-    // Upsert usage tracking
-    const { data: existingUsage } = await serviceClient
-      .from("user_usage")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    const structured = validateAndParseJSON(aiResponse);
 
-    if (existingUsage) {
-      await serviceClient
-        .from("user_usage")
-        .update({
-          requests_count: existingUsage.requests_count + 1,
-          tokens_used: existingUsage.tokens_used + (aiResponse?.length || 0),
-        })
-        .eq("user_id", userId);
-    } else {
-      await serviceClient.from("user_usage").insert({
+    // ------------------------
+    // 6️⃣ ATOMIC USAGE TRACKING
+    // ------------------------
+
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    await serviceClient.from("user_usage").upsert(
+      {
         user_id: userId,
         requests_count: 1,
-        tokens_used: aiResponse?.length || 0,
-      });
-    }
+        tokens_used: aiResponse.length,
+      },
+      { onConflict: "user_id", ignoreDuplicates: false },
+    );
 
-    // Parse AI response - try to extract JSON
-    let structured: Record<string, string> | null = null;
-    try {
-      // Remove markdown fences if present
-      let cleaned = aiResponse.trim();
-      if (cleaned.startsWith("```")) {
-        cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-      }
-      structured = JSON.parse(cleaned);
-    } catch {
-      // If not valid JSON, return as raw text
-      structured = null;
-    }
+    await serviceClient
+      .rpc("increment_usage_counters", {
+        uid: userId,
+        token_count: aiResponse.length,
+      })
+      .catch(() => {});
+
+    // ------------------------
+    // 7️⃣ RESPONSE
+    // ------------------------
 
     return new Response(
       JSON.stringify({
@@ -180,28 +183,81 @@ ${rawInput}
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
-  } catch (e) {
-    console.error("generate-prompt error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+  } catch (err) {
+    console.error("Edge function error:", err);
+    return jsonError(err instanceof Error ? err.message : "Internal error", 500);
   }
 });
 
-async function callPlatformAI(userMessage: string): Promise<string> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+// ------------------------
+// HELPERS
+// ------------------------
+
+function jsonError(message: string, status: number) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function validateAndParseJSON(text: string) {
+  try {
+    let cleaned = text.trim();
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    const parsed = JSON.parse(cleaned);
+
+    for (const key of REQUIRED_JSON_KEYS) {
+      if (!(key in parsed)) {
+        throw new Error(`Missing required key: ${key}`);
+      }
+    }
+
+    return parsed;
+  } catch (err) {
+    console.error("Invalid AI JSON:", err);
+    return null;
+  }
+}
+
+async function callGemini(apiKey: string, system: string, user: string) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: system + "\n\n" + user }] }],
+        generationConfig: {
+          temperature: 0.2,
+          topP: 0.9,
+          maxOutputTokens: 4096,
+        },
+      }),
+    },
+  );
+
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`Gemini error: ${t}`);
+  }
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+}
+
+async function callPlatformAI(userMessage: string) {
+  const key = Deno.env.get("LOVABLE_API_KEY");
+  if (!key) throw new Error("LOVABLE_API_KEY missing");
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${key}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -217,11 +273,8 @@ async function callPlatformAI(userMessage: string): Promise<string> {
   });
 
   if (!response.ok) {
-    if (response.status === 429) throw new Error("Rate limit exceeded. Please try again later.");
-    if (response.status === 402) throw new Error("Usage limit reached. Please add credits.");
     const t = await response.text();
-    console.error("AI gateway error:", response.status, t);
-    throw new Error("AI generation failed");
+    throw new Error(`Platform AI error: ${t}`);
   }
 
   const data = await response.json();
