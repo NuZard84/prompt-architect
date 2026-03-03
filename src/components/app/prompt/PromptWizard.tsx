@@ -5,6 +5,7 @@ import { StepConfirm } from "./StepConfirm";
 import { StepGenerate } from "./StepGenerate";
 import { TemplateSelector, type TemplateData } from "./TemplateSelector";
 import { Badge } from "@/components/ui/badge";
+import type { Workspace } from "@/contexts/WorkspaceContext";
 
 export type PromptState = {
   rawInput: string;
@@ -17,6 +18,7 @@ export type PromptState = {
   additionalOptions: string[];
   generatedOutput: string;
   templateId: string | null;
+  workspaceId: string | null;
 };
 
 const initialState: PromptState = {
@@ -30,20 +32,28 @@ const initialState: PromptState = {
   additionalOptions: [],
   generatedOutput: "",
   templateId: null,
+  workspaceId: null,
 };
 
 const steps = ["Intent", "Clarify", "Confirm", "Generate"] as const;
 
-export function PromptWizard() {
+type Props = {
+  activeWorkspace?: Workspace | null;
+};
+
+export function PromptWizard({ activeWorkspace }: Props) {
   const [step, setStep] = useState(0);
-  const [state, setState] = useState<PromptState>(initialState);
+  const [state, setState] = useState<PromptState>({
+    ...initialState,
+    workspaceId: activeWorkspace?.id || null,
+  });
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(null);
 
   const update = (patch: Partial<PromptState>) => setState((s) => ({ ...s, ...patch }));
 
   const reset = () => {
     setStep(0);
-    setState(initialState);
+    setState({ ...initialState, workspaceId: activeWorkspace?.id || null });
     setSelectedTemplate(null);
   };
 
@@ -67,7 +77,6 @@ export function PromptWizard() {
 
   return (
     <div>
-      {/* Template selector + Step indicators */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div className="flex items-center gap-1">
           {steps.map((s, i) => (
@@ -113,7 +122,7 @@ export function PromptWizard() {
       {step === 0 && <StepIntent state={state} update={update} onNext={() => setStep(1)} />}
       {step === 1 && <StepClarify state={state} update={update} onNext={() => setStep(2)} onBack={() => setStep(0)} />}
       {step === 2 && <StepConfirm state={state} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-      {step === 3 && <StepGenerate state={state} update={update} onReset={reset} />}
+      {step === 3 && <StepGenerate state={state} update={update} onReset={reset} activeWorkspace={activeWorkspace} />}
     </div>
   );
 }

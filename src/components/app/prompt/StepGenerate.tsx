@@ -6,11 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PromptState } from "./PromptWizard";
+import type { Workspace } from "@/contexts/WorkspaceContext";
 
 type Props = {
   state: PromptState;
   update: (p: Partial<PromptState>) => void;
   onReset: () => void;
+  activeWorkspace?: Workspace | null;
 };
 
 function formatStructured(s: Record<string, string>): string {
@@ -31,7 +33,7 @@ function formatStructured(s: Record<string, string>): string {
     .join("\n\n");
 }
 
-export function StepGenerate({ state, update, onReset }: Props) {
+export function StepGenerate({ state, update, onReset, activeWorkspace }: Props) {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -70,6 +72,9 @@ export function StepGenerate({ state, update, onReset }: Props) {
             constraints: state.constraints,
             additionalOptions: state.additionalOptions,
             templateId: state.templateId || undefined,
+            workspaceId: activeWorkspace?.id || undefined,
+            workspaceContext: activeWorkspace?.context_enabled ? activeWorkspace.context_summary : undefined,
+            workspaceModel: activeWorkspace?.default_model || undefined,
           }),
         }
       );
