@@ -93,6 +93,7 @@ serve(async (req) => {
       constraints,
       additionalOptions,
       templateId,
+      workspaceContext,
     } = body;
 
     if (!rawInput) {
@@ -116,6 +117,11 @@ serve(async (req) => {
       }
     }
 
+    // Workspace context injection
+    const wsContext = workspaceContext
+      ? `\nWorkspace Context:\n${workspaceContext}\n`
+      : "";
+
     const userMessage = `
 Intent: ${intent || "General"}
 Target Agent: ${targetAgent || "General"}
@@ -124,7 +130,7 @@ Tech Stack: ${techStack?.join(", ") || "Not specified"}
 Context Strictness: ${contextStrictness || "Balanced"}
 Constraints: ${constraints?.join(", ") || "None"}
 Additional Options: ${additionalOptions?.join(", ") || "None"}
-${templateContext}
+${templateContext}${wsContext}
 User raw input:
 ${rawInput}
 `;

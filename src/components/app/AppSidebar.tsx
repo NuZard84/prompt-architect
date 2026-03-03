@@ -1,4 +1,4 @@
-import { Brain, PenLine, Clock, Layout, Settings } from "lucide-react";
+import { Brain, PenLine, Clock, Layout, Settings, FolderOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -18,6 +18,7 @@ const items = [
   { title: "Prompts", url: "/app/prompts", icon: Brain },
   { title: "History", url: "/app/history", icon: Clock },
   { title: "Templates", url: "/app/templates", icon: Layout },
+  { title: "Workspaces", url: "/app/workspaces", icon: FolderOpen },
   { title: "Settings", url: "/app/settings", icon: Settings },
 ];
 

@@ -12,6 +12,7 @@ import WorkspacePage from "@/pages/app/WorkspacePage";
 import PromptsPage from "@/pages/app/PromptsPage";
 import HistoryPage from "@/pages/app/HistoryPage";
 import TemplatesPage from "@/pages/app/TemplatesPage";
+import WorkspacesPage from "@/pages/app/WorkspacesPage";
 import SettingsPage from "@/pages/app/SettingsPage";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="prompts" element={<PromptsPage />} />
               <Route path="history" element={<HistoryPage />} />
               <Route path="templates" element={<TemplatesPage />} />
+              <Route path="workspaces" element={<WorkspacesPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

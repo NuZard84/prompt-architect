@@ -59,6 +59,7 @@ export type Database = {
           output_structure_schema: Json | null
           type: string
           user_id: string | null
+          workspace_id: string | null
         }
         Insert: {
           clarification_schema?: Json | null
@@ -74,6 +75,7 @@ export type Database = {
           output_structure_schema?: Json | null
           type?: string
           user_id?: string | null
+          workspace_id?: string | null
         }
         Update: {
           clarification_schema?: Json | null
@@ -89,8 +91,17 @@ export type Database = {
           output_structure_schema?: Json | null
           type?: string
           user_id?: string | null
+          workspace_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prompt_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prompt_versions: {
         Row: {
@@ -141,6 +152,7 @@ export type Database = {
           title: string
           updated_at: string
           user_id: string
+          workspace_id: string | null
         }
         Insert: {
           classified_intent?: string | null
@@ -155,6 +167,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id: string
+          workspace_id?: string | null
         }
         Update: {
           classified_intent?: string | null
@@ -169,6 +182,7 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -176,6 +190,13 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "prompt_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -239,6 +260,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workspaces: {
+        Row: {
+          context_enabled: boolean | null
+          context_summary: string | null
+          created_at: string
+          default_model: string | null
+          default_template_id: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context_enabled?: boolean | null
+          context_summary?: string | null
+          created_at?: string
+          default_model?: string | null
+          default_template_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context_enabled?: boolean | null
+          context_summary?: string | null
+          created_at?: string
+          default_model?: string | null
+          default_template_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_default_template_id_fkey"
+            columns: ["default_template_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
