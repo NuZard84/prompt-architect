@@ -69,6 +69,7 @@ export function StepGenerate({ state, update, onReset }: Props) {
             contextStrictness: state.contextStrictness,
             constraints: state.constraints,
             additionalOptions: state.additionalOptions,
+            templateId: state.templateId || undefined,
           }),
         }
       );
@@ -125,8 +126,10 @@ export function StepGenerate({ state, update, onReset }: Props) {
         contextStrictness: state.contextStrictness,
         constraints: state.constraints,
         additionalOptions: state.additionalOptions,
-      },
+      } as any,
       generated_output: state.generatedOutput,
+      template_id: state.templateId || null,
+      model_used: provider || null,
     });
     if (error) {
       toast({ title: "Error saving", description: error.message, variant: "destructive" });

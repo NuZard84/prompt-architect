@@ -92,10 +92,28 @@ serve(async (req) => {
       contextStrictness,
       constraints,
       additionalOptions,
+      templateId,
     } = body;
 
     if (!rawInput) {
       return jsonError("rawInput is required", 400);
+    }
+
+    // Load template if provided
+    let templateContext = "";
+    if (templateId) {
+      const { data: tmpl } = await userClient
+        .from("prompt_templates")
+        .select("name, default_constraints, clarification_schema, output_structure_schema, context_depth")
+        .eq("id", templateId)
+        .maybeSingle();
+
+      if (tmpl) {
+        const defConstraints = Array.isArray(tmpl.default_constraints)
+          ? (tmpl.default_constraints as string[]).join(", ")
+          : "";
+        templateContext = `\nTemplate: ${tmpl.name}\nTemplate Constraints: ${defConstraints}\nContext Depth: ${tmpl.context_depth || "medium"}\n`;
+      }
     }
 
     const userMessage = `
@@ -106,7 +124,7 @@ Tech Stack: ${techStack?.join(", ") || "Not specified"}
 Context Strictness: ${contextStrictness || "Balanced"}
 Constraints: ${constraints?.join(", ") || "None"}
 Additional Options: ${additionalOptions?.join(", ") || "None"}
-
+${templateContext}
 User raw input:
 ${rawInput}
 `;

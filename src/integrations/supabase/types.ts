@@ -46,28 +46,49 @@ export type Database = {
       }
       prompt_templates: {
         Row: {
+          clarification_schema: Json | null
+          context_depth: string | null
           created_at: string
+          default_constraints: Json | null
           default_options: Json | null
           description: string | null
           id: string
+          intent_type: string | null
+          model_compatibility: string[] | null
           name: string
-          user_id: string
+          output_structure_schema: Json | null
+          type: string
+          user_id: string | null
         }
         Insert: {
+          clarification_schema?: Json | null
+          context_depth?: string | null
           created_at?: string
+          default_constraints?: Json | null
           default_options?: Json | null
           description?: string | null
           id?: string
+          intent_type?: string | null
+          model_compatibility?: string[] | null
           name: string
-          user_id: string
+          output_structure_schema?: Json | null
+          type?: string
+          user_id?: string | null
         }
         Update: {
+          clarification_schema?: Json | null
+          context_depth?: string | null
           created_at?: string
+          default_constraints?: Json | null
           default_options?: Json | null
           description?: string | null
           id?: string
+          intent_type?: string | null
+          model_compatibility?: string[] | null
           name?: string
-          user_id?: string
+          output_structure_schema?: Json | null
+          type?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -112,9 +133,11 @@ export type Database = {
           created_at: string
           generated_output: string | null
           id: string
+          model_used: string | null
           raw_input: string
           selected_options: Json | null
           tags: string[] | null
+          template_id: string | null
           title: string
           updated_at: string
           user_id: string
@@ -124,9 +147,11 @@ export type Database = {
           created_at?: string
           generated_output?: string | null
           id?: string
+          model_used?: string | null
           raw_input: string
           selected_options?: Json | null
           tags?: string[] | null
+          template_id?: string | null
           title?: string
           updated_at?: string
           user_id: string
@@ -136,14 +161,24 @@ export type Database = {
           created_at?: string
           generated_output?: string | null
           id?: string
+          model_used?: string | null
           raw_input?: string
           selected_options?: Json | null
           tags?: string[] | null
+          template_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prompts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_ai_settings: {
         Row: {
