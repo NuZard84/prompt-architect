@@ -17,35 +17,26 @@ type Props = {
 
 function formatStructured(s: Record<string, string>): string {
   const sectionMap: Record<string, string> = {
-    objective: "Objective",
-    current_context: "Current Context",
-    target_outcome: "Target Outcome",
-    constraints: "Constraints",
-    implementation_plan: "Implementation Plan",
-    code_level_instructions: "Code-Level Instructions",
-    risk_edge_cases: "Risk & Edge Cases",
-    testing_plan: "Testing Plan",
-    rollback_plan: "Rollback Plan",
-    validation_checklist: "Final Validation Checklist",
+    objective: "Objective", current_context: "Current Context", target_outcome: "Target Outcome",
+    constraints: "Constraints", implementation_plan: "Implementation Plan",
+    code_level_instructions: "Code-Level Instructions", risk_edge_cases: "Risk & Edge Cases",
+    testing_plan: "Testing Plan", rollback_plan: "Rollback Plan", validation_checklist: "Final Validation Checklist",
   };
-  return Object.entries(sectionMap)
-    .map(([key, title]) => `## ${title}\n${s[key] || "N/A"}`)
-    .join("\n\n");
+  return Object.entries(sectionMap).map(([key, title]) => `## ${title}\n${s[key] || "N/A"}`).join("\n\n");
 }
 
 export function StepGenerate({ state, update, onReset, activeWorkspace }: Props) {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [provider, setProvider] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [provider, setProvider] = useState("");
+  const [tokenData, setTokenData] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number; latencyMs: number }>({ inputTokens: 0, outputTokens: 0, totalTokens: 0, latencyMs: 0 });
+  const [error, setError] = useState("");
   const { toast } = useToast();
   const { user, session } = useAuth();
 
   useEffect(() => {
-    if (!state.generatedOutput) {
-      generateWithAI();
-    }
+    if (!state.generatedOutput) generateWithAI();
   }, []);
 
   const generateWithAI = async () => {
@@ -54,30 +45,19 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
     setError("");
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-prompt`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            rawInput: state.rawInput,
-            intent: state.intent,
-            targetAgent: state.targetAgent,
-            outputFormat: state.outputFormat,
-            techStack: state.techStack,
-            contextStrictness: state.contextStrictness,
-            constraints: state.constraints,
-            additionalOptions: state.additionalOptions,
-            templateId: state.templateId || undefined,
-            workspaceId: activeWorkspace?.id || undefined,
-            workspaceContext: activeWorkspace?.context_enabled ? activeWorkspace.context_summary : undefined,
-            workspaceModel: activeWorkspace?.default_model || undefined,
-          }),
-        }
-      );
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-prompt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          rawInput: state.rawInput, intent: state.intent, targetAgent: state.targetAgent,
+          outputFormat: state.outputFormat, techStack: state.techStack, contextStrictness: state.contextStrictness,
+          constraints: state.constraints, additionalOptions: state.additionalOptions,
+          templateId: state.templateId || undefined,
+          workspaceId: activeWorkspace?.id || undefined,
+          workspaceContext: activeWorkspace?.context_enabled ? activeWorkspace.context_summary : undefined,
+          workspaceModel: activeWorkspace?.default_model || undefined,
+        }),
+      });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "AI generation failed" }));
@@ -90,9 +70,9 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
         : data.raw || "No output generated";
 
       update({ generatedOutput: output });
-      setProvider(data.provider === "custom" ? "Gemini (Your Key)" : data.provider === "platform_fallback" ? "Gemini (Platform — Fallback)" : "Gemini (Platform Key)");
+      setProvider(data.provider === "custom" ? "Gemini (Your Key)" : data.provider === "platform_fallback" ? "Gemini (Fallback)" : "Gemini (Platform)");
+      setTokenData({ inputTokens: data.inputTokens || 0, outputTokens: data.outputTokens || 0, totalTokens: data.totalTokens || 0, latencyMs: data.latencyMs || 0 });
     } catch (e: any) {
-      console.error("AI generation error:", e);
       setError(e.message || "Failed to generate prompt");
       toast({ title: "Generation failed", description: e.message, variant: "destructive" });
     } finally {
@@ -121,20 +101,18 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
     if (!user) return;
     const { error } = await supabase.from("prompts").insert({
       user_id: user.id,
+      workspace_id: activeWorkspace?.id || null,
       title: `${state.intent} — ${state.targetAgent}`,
       raw_input: state.rawInput,
       classified_intent: state.intent,
-      selected_options: {
-        targetAgent: state.targetAgent,
-        outputFormat: state.outputFormat,
-        techStack: state.techStack,
-        contextStrictness: state.contextStrictness,
-        constraints: state.constraints,
-        additionalOptions: state.additionalOptions,
-      } as any,
+      selected_options: { targetAgent: state.targetAgent, outputFormat: state.outputFormat, techStack: state.techStack, contextStrictness: state.contextStrictness, constraints: state.constraints, additionalOptions: state.additionalOptions } as any,
       generated_output: state.generatedOutput,
       template_id: state.templateId || null,
       model_used: provider || null,
+      input_tokens: tokenData.inputTokens,
+      output_tokens: tokenData.outputTokens,
+      total_tokens: tokenData.totalTokens,
+      latency_ms: tokenData.latencyMs,
     });
     if (error) {
       toast({ title: "Error saving", description: error.message, variant: "destructive" });
@@ -167,9 +145,15 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
     <div className="space-y-6">
       {provider && (
         <TooltipProvider>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             <span>Using: {provider}</span>
+            {tokenData.totalTokens > 0 && (
+              <span>• {tokenData.totalTokens.toLocaleString()} tokens</span>
+            )}
+            {tokenData.latencyMs > 0 && (
+              <span>• {tokenData.latencyMs}ms</span>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="cursor-help underline decoration-dotted">ℹ️</span>
@@ -208,12 +192,8 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
           <Button variant="outline" onClick={generateWithAI}>
             <Sparkles className="mr-2 h-4 w-4" /> Regenerate
           </Button>
-          <Button variant="outline" onClick={() => handleDownload("txt")}>
-            Download .txt
-          </Button>
-          <Button variant="outline" onClick={() => handleDownload("md")}>
-            Download .md
-          </Button>
+          <Button variant="outline" onClick={() => handleDownload("txt")}>Download .txt</Button>
+          <Button variant="outline" onClick={() => handleDownload("md")}>Download .md</Button>
         </div>
       </div>
     </div>

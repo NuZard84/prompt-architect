@@ -8,16 +8,9 @@ const corsHeaders = {
 };
 
 const REQUIRED_JSON_KEYS = [
-  "objective",
-  "current_context",
-  "target_outcome",
-  "constraints",
-  "implementation_plan",
-  "code_level_instructions",
-  "risk_edge_cases",
-  "testing_plan",
-  "rollback_plan",
-  "validation_checklist",
+  "objective", "current_context", "target_outcome", "constraints",
+  "implementation_plan", "code_level_instructions", "risk_edge_cases",
+  "testing_plan", "rollback_plan", "validation_checklist",
 ];
 
 const SYSTEM_PROMPT = `You are a senior AI Prompt Engineering Architect.
@@ -45,62 +38,30 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
-    // ------------------------
-    // 1️⃣ AUTH VALIDATION
-    // ------------------------
-
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonError("Unauthorized", 401);
-    }
+    if (!authHeader?.startsWith("Bearer ")) return jsonError("Unauthorized", 401);
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase environment variables missing");
-    }
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const {
-      data: { user },
-      error: authError,
-    } = await userClient.auth.getUser();
-
-    if (authError || !user) {
-      return jsonError("Unauthorized", 401);
-    }
-
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) return jsonError("Unauthorized", 401);
     const userId = user.id;
 
-    // ------------------------
-    // 2️⃣ REQUEST BODY
-    // ------------------------
-
     const body = await req.json();
-    const {
-      rawInput,
-      intent,
-      targetAgent,
-      outputFormat,
-      techStack,
-      contextStrictness,
-      constraints,
-      additionalOptions,
-      templateId,
-      workspaceContext,
-    } = body;
+    const { rawInput, intent, targetAgent, outputFormat, techStack, contextStrictness, constraints, additionalOptions, templateId, workspaceContext } = body;
 
-    if (!rawInput) {
-      return jsonError("rawInput is required", 400);
-    }
+    if (!rawInput) return jsonError("rawInput is required", 400);
 
-    // Load template if provided
+    // Load template
     let templateContext = "";
     if (templateId) {
       const { data: tmpl } = await userClient
@@ -110,17 +71,12 @@ serve(async (req) => {
         .maybeSingle();
 
       if (tmpl) {
-        const defConstraints = Array.isArray(tmpl.default_constraints)
-          ? (tmpl.default_constraints as string[]).join(", ")
-          : "";
+        const defConstraints = Array.isArray(tmpl.default_constraints) ? (tmpl.default_constraints as string[]).join(", ") : "";
         templateContext = `\nTemplate: ${tmpl.name}\nTemplate Constraints: ${defConstraints}\nContext Depth: ${tmpl.context_depth || "medium"}\n`;
       }
     }
 
-    // Workspace context injection
-    const wsContext = workspaceContext
-      ? `\nWorkspace Context:\n${workspaceContext}\n`
-      : "";
+    const wsContext = workspaceContext ? `\nWorkspace Context:\n${workspaceContext}\n` : "";
 
     const userMessage = `
 Intent: ${intent || "General"}
@@ -135,10 +91,7 @@ User raw input:
 ${rawInput}
 `;
 
-    // ------------------------
-    // 3️⃣ LOAD AI SETTINGS
-    // ------------------------
-
+    // Load AI settings
     const { data: aiSettings } = await userClient
       .from("user_ai_settings")
       .select("use_custom_key, gemini_api_key")
@@ -146,10 +99,6 @@ ${rawInput}
       .maybeSingle();
 
     const useCustomKey = aiSettings?.use_custom_key && aiSettings?.gemini_api_key;
-
-    // ------------------------
-    // 4️⃣ AI CALL
-    // ------------------------
 
     let aiResponse: string;
     let providerUsed = "platform";
@@ -167,90 +116,56 @@ ${rawInput}
       aiResponse = await callPlatformAI(userMessage);
     }
 
-    // ------------------------
-    // 5️⃣ SAFE JSON PARSE
-    // ------------------------
+    const latencyMs = Date.now() - startTime;
+    const inputTokens = userMessage.length;
+    const outputTokens = aiResponse.length;
+    const totalTokens = inputTokens + outputTokens;
 
     const structured = validateAndParseJSON(aiResponse);
 
-    // ------------------------
-    // 6️⃣ ATOMIC USAGE TRACKING
-    // ------------------------
-
+    // Usage tracking
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     try {
-      const { data: existing } = await serviceClient
-        .from("user_usage")
-        .select("id, requests_count, tokens_used")
-        .eq("user_id", userId)
-        .maybeSingle();
-
+      const { data: existing } = await serviceClient.from("user_usage").select("id, requests_count, tokens_used").eq("user_id", userId).maybeSingle();
       if (existing) {
         await serviceClient.from("user_usage").update({
           requests_count: (existing.requests_count || 0) + 1,
-          tokens_used: (existing.tokens_used || 0) + aiResponse.length,
+          tokens_used: (existing.tokens_used || 0) + totalTokens,
         }).eq("user_id", userId);
       } else {
-        await serviceClient.from("user_usage").insert({
-          user_id: userId,
-          requests_count: 1,
-          tokens_used: aiResponse.length,
-        });
+        await serviceClient.from("user_usage").insert({ user_id: userId, requests_count: 1, tokens_used: totalTokens });
       }
     } catch (e) {
       console.error("Usage tracking error:", e);
     }
 
-    // ------------------------
-    // 7️⃣ RESPONSE
-    // ------------------------
-
     return new Response(
-      JSON.stringify({
-        structured,
-        raw: aiResponse,
-        provider: providerUsed,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      JSON.stringify({ structured, raw: aiResponse, provider: providerUsed, inputTokens, outputTokens, totalTokens, latencyMs }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error("Edge function error:", err);
+    if (err instanceof Error && err.message.includes("Rate limit")) return jsonError("Rate limit exceeded", 429);
     return jsonError(err instanceof Error ? err.message : "Internal error", 500);
   }
 });
 
-// ------------------------
-// HELPERS
-// ------------------------
-
 function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
 function validateAndParseJSON(text: string) {
   try {
     let cleaned = text.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-    }
-
+    if (cleaned.startsWith("```")) cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     const parsed = JSON.parse(cleaned);
-
     for (const key of REQUIRED_JSON_KEYS) {
-      if (!(key in parsed)) {
-        throw new Error(`Missing required key: ${key}`);
-      }
+      if (!(key in parsed)) throw new Error(`Missing: ${key}`);
     }
-
     return parsed;
-  } catch (err) {
-    console.error("Invalid AI JSON:", err);
+  } catch {
     return null;
   }
 }
@@ -263,20 +178,11 @@ async function callGemini(apiKey: string, system: string, user: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: system + "\n\n" + user }] }],
-        generationConfig: {
-          temperature: 0.2,
-          topP: 0.9,
-          maxOutputTokens: 4096,
-        },
+        generationConfig: { temperature: 0.2, topP: 0.9, maxOutputTokens: 4096 },
       }),
     },
   );
-
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Gemini error: ${t}`);
-  }
-
+  if (!res.ok) throw new Error(`Gemini error: ${await res.text()}`);
   const data = await res.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
@@ -287,27 +193,22 @@ async function callPlatformAI(userMessage: string) {
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "google/gemini-3-flash-preview",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userMessage },
       ],
-      temperature: 0.2,
-      top_p: 0.9,
-      max_tokens: 4096,
+      temperature: 0.2, top_p: 0.9, max_tokens: 4096,
     }),
   });
-
   if (!response.ok) {
     const t = await response.text();
+    if (response.status === 429) throw new Error("Rate limit exceeded");
+    if (response.status === 402) throw new Error("AI credits exhausted");
     throw new Error(`Platform AI error: ${t}`);
   }
-
   const data = await response.json();
   return data.choices?.[0]?.message?.content || "";
 }

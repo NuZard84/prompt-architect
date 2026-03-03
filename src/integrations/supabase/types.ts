@@ -144,12 +144,16 @@ export type Database = {
           created_at: string
           generated_output: string | null
           id: string
+          input_tokens: number | null
+          latency_ms: number | null
           model_used: string | null
+          output_tokens: number | null
           raw_input: string
           selected_options: Json | null
           tags: string[] | null
           template_id: string | null
           title: string
+          total_tokens: number | null
           updated_at: string
           user_id: string
           workspace_id: string | null
@@ -159,12 +163,16 @@ export type Database = {
           created_at?: string
           generated_output?: string | null
           id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
           model_used?: string | null
+          output_tokens?: number | null
           raw_input: string
           selected_options?: Json | null
           tags?: string[] | null
           template_id?: string | null
           title?: string
+          total_tokens?: number | null
           updated_at?: string
           user_id: string
           workspace_id?: string | null
@@ -174,12 +182,16 @@ export type Database = {
           created_at?: string
           generated_output?: string | null
           id?: string
+          input_tokens?: number | null
+          latency_ms?: number | null
           model_used?: string | null
+          output_tokens?: number | null
           raw_input?: string
           selected_options?: Json | null
           tags?: string[] | null
           template_id?: string | null
           title?: string
+          total_tokens?: number | null
           updated_at?: string
           user_id?: string
           workspace_id?: string | null
@@ -260,6 +272,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workspace_contexts: {
+        Row: {
+          created_at: string
+          full_context_summary: string
+          generated_at: string
+          id: string
+          tokens_used: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_context_summary: string
+          generated_at?: string
+          id?: string
+          tokens_used?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          full_context_summary?: string
+          generated_at?: string
+          id?: string
+          tokens_used?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_contexts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workspaces: {
         Row: {
