@@ -1,4 +1,4 @@
-import { Brain, PenLine, Clock, Layout, Settings, FolderOpen } from "lucide-react";
+import { Brain, FolderOpen, Layout, Settings, BarChart3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -14,18 +14,15 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Workspace", url: "/app", icon: PenLine },
-  { title: "Prompts", url: "/app/prompts", icon: Brain },
-  { title: "History", url: "/app/history", icon: Clock },
-  { title: "Templates", url: "/app/templates", icon: Layout },
+  { title: "Dashboard", url: "/app/dashboard", icon: BarChart3 },
   { title: "Workspaces", url: "/app/workspaces", icon: FolderOpen },
+  { title: "Templates", url: "/app/templates", icon: Layout },
   { title: "Settings", url: "/app/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
 
   return (
     <Sidebar collapsible="icon">
@@ -46,7 +43,6 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/app"}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
