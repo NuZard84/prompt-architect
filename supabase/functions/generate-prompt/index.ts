@@ -155,21 +155,28 @@ ${rawInput}
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    await serviceClient.from("user_usage").upsert(
-      {
-        user_id: userId,
-        requests_count: 1,
-        tokens_used: aiResponse.length,
-      },
-      { onConflict: "user_id", ignoreDuplicates: false },
-    );
+    try {
+      const { data: existing } = await serviceClient
+        .from("user_usage")
+        .select("id, requests_count, tokens_used")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    await serviceClient
-      .rpc("increment_usage_counters", {
-        uid: userId,
-        token_count: aiResponse.length,
-      })
-      .catch(() => {});
+      if (existing) {
+        await serviceClient.from("user_usage").update({
+          requests_count: (existing.requests_count || 0) + 1,
+          tokens_used: (existing.tokens_used || 0) + aiResponse.length,
+        }).eq("user_id", userId);
+      } else {
+        await serviceClient.from("user_usage").insert({
+          user_id: userId,
+          requests_count: 1,
+          tokens_used: aiResponse.length,
+        });
+      }
+    } catch (e) {
+      console.error("Usage tracking error:", e);
+    }
 
     // ------------------------
     // 7️⃣ RESPONSE
@@ -226,7 +233,7 @@ function validateAndParseJSON(text: string) {
 
 async function callGemini(apiKey: string, system: string, user: string) {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
