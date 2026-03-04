@@ -30,7 +30,7 @@ const features = [
   {
     icon: Zap,
     title: "Multi-Agent Support",
-    description: "Optimized output for Cursor, Lovable, GPT, Claude, Codex, and custom AI agents.",
+    description: "Optimized output for Cursor, GPT, Claude, Codex, and custom AI agents.",
   },
 ];
 

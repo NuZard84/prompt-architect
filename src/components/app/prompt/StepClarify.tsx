@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import type { PromptState } from "./PromptWizard";
 
-const agents = ["Cursor", "Lovable", "GPT", "Claude", "Codex", "Custom"];
+const agents = ["Cursor", "GPT", "Claude", "Codex", "Custom"];
 const formats = ["Step-by-step", "Strict implementation", "Diff-style refactor", "Jira ticket", "PRD", "Debug checklist", "Test cases", "Combined"];
 const stacks = ["React", "Next.js", "Node.js", "Python", "PostgreSQL", "TypeScript", "Tailwind", "Supabase", "Docker", "AWS"];
 const strictness = ["No assumptions", "Allow assumptions", "High-level only", "Detailed code-level"];
