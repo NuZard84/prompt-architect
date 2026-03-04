@@ -1,7 +1,0 @@
-project_id = "cyssqplyjfiiobrnsvhr"
-
-[functions.generate-prompt]
-verify_jwt = false
-
-[functions.gather-context]
-verify_jwt = false
