@@ -1,4 +1,4 @@
-# Brain Prompt Agent
+# Prompt Brain
 
 Production-grade AI prompt engineering for developers. Turn messy explanations into structured, actionable prompts optimized for Cursor, GPT, Claude, Codex, and custom AI agents.
 

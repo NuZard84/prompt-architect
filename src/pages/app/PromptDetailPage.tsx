@@ -117,7 +117,7 @@ export default function PromptDetailPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/app/workspace/${workspaceId}/history`)}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(`/app/workspace/${workspaceId}/history`)} aria-label="Back to history">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -125,15 +125,15 @@ export default function PromptDetailPage() {
           <p className="text-xs text-muted-foreground">{new Date(prompt.created_at).toLocaleString()}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopy}>
+          <Button variant="outline" size="sm" onClick={handleCopy} aria-label={copied ? "Copied!" : "Copy prompt"}>
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleDuplicate}>
+          <Button variant="outline" size="sm" onClick={handleDuplicate} aria-label="Duplicate prompt">
             <RotateCcw className="h-3.5 w-3.5" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" aria-label="Delete prompt">
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </AlertDialogTrigger>
@@ -208,7 +208,7 @@ export default function PromptDetailPage() {
           <div className="rounded-xl border bg-card overflow-hidden">
             <div className="border-b px-4 py-3 flex items-center justify-between">
               <span className="text-sm font-semibold">Generated Output</span>
-              <Button variant="ghost" size="sm" onClick={handleCopy}>
+              <Button variant="ghost" size="sm" onClick={handleCopy} aria-label={copied ? "Copied!" : "Copy output"}>
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               </Button>
             </div>

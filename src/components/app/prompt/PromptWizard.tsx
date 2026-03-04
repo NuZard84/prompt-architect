@@ -84,7 +84,7 @@ export function PromptWizard({ activeWorkspace }: Props) {
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                   i <= step
-                    ? "gradient-bg text-primary-foreground"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-secondary text-muted-foreground"
                 }`}
               >

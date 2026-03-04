@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, ArrowLeft, Search, Eye } from "lucide-react";
+import { Loader2, ArrowLeft, Search, Eye, FileText, Sparkles } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type PromptRow = {
   id: string;
@@ -63,8 +64,19 @@ export default function WorkspaceHistoryPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="mx-auto max-w-5xl">
+        <div className="flex items-center gap-3 mb-6">
+          <Skeleton className="h-9 w-9 rounded" />
+          <div>
+            <Skeleton className="h-7 w-48 mb-2" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+        <div className="flex gap-3 mb-6">
+          <Skeleton className="h-10 flex-1 max-w-[200px]" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <Skeleton className="h-[300px] w-full rounded-xl" />
       </div>
     );
   }
@@ -76,7 +88,7 @@ export default function WorkspaceHistoryPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Workspace History</h1>
+          <h1 className="text-2xl font-bold font-display">Workspace History</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} prompt{filtered.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
@@ -104,8 +116,20 @@ export default function WorkspaceHistoryPage() {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground border rounded-xl border-dashed">
-          <p>No prompts in this workspace yet.</p>
+        <div className="flex flex-col items-center justify-center py-20 px-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/20 text-center animate-fade-in-up">
+          <div className="mb-4 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/10">
+            <FileText className="h-12 w-12 text-primary/60" strokeWidth={1.5} />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">No prompts yet</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mb-6">
+            {search || modelFilter !== "all" ? "No prompts match your filters. Try adjusting your search." : "Create your first prompt using the wizard to get started."}
+          </p>
+          {(!search && modelFilter === "all") && (
+            <Button variant="outline" onClick={() => navigate(`/app/workspace/${workspaceId}`)}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Create Prompt
+            </Button>
+          )}
         </div>
       ) : (
         <div className="rounded-xl border bg-card overflow-hidden">
@@ -130,7 +154,7 @@ export default function WorkspaceHistoryPage() {
                     <td className="p-3 text-muted-foreground">{(p.total_tokens || 0).toLocaleString()}</td>
                     <td className="p-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
                     <td className="p-3">
-                      <Button variant="ghost" size="sm" onClick={() => navigate(`/app/workspace/${workspaceId}/prompt/${p.id}`)}>
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/app/workspace/${workspaceId}/prompt/${p.id}`)} aria-label={`View prompt: ${p.title}`}>
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
                     </td>

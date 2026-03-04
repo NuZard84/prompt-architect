@@ -45,7 +45,7 @@ export function StepConfirm({ state, onNext, onBack }: Props) {
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <Button onClick={onNext} className="gradient-bg text-primary-foreground border-0">
+        <Button onClick={onNext} className="bg-primary text-primary-foreground border-0 hover:bg-primary/90">
           <Sparkles className="mr-2 h-4 w-4" /> Generate Prompt
         </Button>
       </div>

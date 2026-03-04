@@ -30,7 +30,7 @@ function MultiSelect({ label, options, selected, onChange }: { label: string; op
             key={o}
             variant={selected.includes(o) ? "default" : "outline"}
             className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${
-              selected.includes(o) ? "gradient-bg text-primary-foreground border-0" : "hover:border-primary/50"
+              selected.includes(o) ? "bg-primary text-primary-foreground border-0" : "hover:border-primary/50"
             }`}
             onClick={() => toggle(o)}
           >
@@ -52,7 +52,7 @@ function SingleSelect({ label, options, selected, onChange }: { label: string; o
             key={o}
             variant={selected === o ? "default" : "outline"}
             className={`cursor-pointer px-3 py-1.5 text-xs transition-all ${
-              selected === o ? "gradient-bg text-primary-foreground border-0" : "hover:border-primary/50"
+              selected === o ? "bg-primary text-primary-foreground border-0" : "hover:border-primary/50"
             }`}
             onClick={() => onChange(o)}
           >
@@ -80,7 +80,7 @@ export function StepClarify({ state, update, onNext, onBack }: Props) {
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <Button onClick={onNext} disabled={!canProceed} className="gradient-bg text-primary-foreground border-0">
+        <Button onClick={onNext} disabled={!canProceed} className="bg-primary text-primary-foreground border-0 hover:bg-primary/90">
           Continue <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

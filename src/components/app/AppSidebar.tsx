@@ -1,4 +1,4 @@
-import { Brain, FolderOpen, Layout, Settings, BarChart3 } from "lucide-react";
+import { FolderOpen, Layout, Settings, BarChart3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -28,10 +28,8 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <div className="flex items-center gap-2 px-4 py-4">
-          <div className="gradient-bg rounded-lg p-1.5 flex-shrink-0">
-            <Brain className="h-4 w-4 text-primary-foreground" />
-          </div>
-          {!collapsed && <span className="text-sm font-bold tracking-tight">Brain Prompt Agent</span>}
+          <img src="/pormpt-brain.png" alt="Prompt Brain" className="h-8 w-8 flex-shrink-0 object-contain" />
+          {!collapsed && <span className="text-sm font-bold font-display tracking-tight">Prompt Brain</span>}
         </div>
 
         <SidebarGroup>

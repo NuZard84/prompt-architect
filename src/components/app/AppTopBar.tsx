@@ -33,7 +33,7 @@ export function AppTopBar() {
           {profile?.full_name || user?.email}
         </span>
       </div>
-      <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full">
+      <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full" aria-label="Sign out">
         <LogOut className="h-4 w-4" />
       </Button>
     </div>

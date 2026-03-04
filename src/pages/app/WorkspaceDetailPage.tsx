@@ -146,7 +146,7 @@ export default function WorkspaceDetailPage() {
           </Button>
           <Button
             size="sm"
-            className="gradient-bg text-primary-foreground border-0"
+            className="bg-primary text-primary-foreground border-0 hover:bg-primary/90"
             onClick={handleGatherContext}
             disabled={gatheringContext}
           >

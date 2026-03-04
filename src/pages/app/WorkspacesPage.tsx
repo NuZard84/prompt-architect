@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, FolderOpen, Loader2, ArrowRight } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 
 const modelOptions = [
   { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
@@ -36,6 +38,7 @@ export default function WorkspacesPage() {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const { data: workspaces = [], isLoading } = useQuery({
     queryKey: ["workspaces-with-counts", user?.id],
@@ -68,6 +71,7 @@ export default function WorkspacesPage() {
     } else {
       setNewName("");
       setNewDesc("");
+      setCreateDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["workspaces-with-counts"] });
       toast({ title: "Workspace created!" });
       if (data) navigate(`/app/workspace/${data.id}`);
@@ -76,22 +80,41 @@ export default function WorkspacesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8">
+          <Skeleton className="h-8 w-40 mb-2" />
+          <Skeleton className="h-5 w-72" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-5 w-32 mb-2" />
+                <Skeleton className="h-4 w-full" />
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Workspaces</h1>
+          <h1 className="text-2xl font-bold font-display">Workspaces</h1>
           <p className="text-muted-foreground mt-1">Organize prompts by project, team, or context.</p>
         </div>
-        <Dialog>
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gradient-bg text-primary-foreground border-0">
+            <Button className="bg-primary text-primary-foreground border-0 hover:bg-primary/90">
               <Plus className="mr-2 h-4 w-4" /> New Workspace
             </Button>
           </DialogTrigger>
@@ -100,11 +123,13 @@ export default function WorkspacesPage() {
               <DialogTitle>Create Workspace</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              <div>
-                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. E-commerce App" />
+              <div className="space-y-2">
+                <Label htmlFor="workspace-name">Workspace name</Label>
+                <Input id="workspace-name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. E-commerce App" />
               </div>
-              <div>
-                <Textarea value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Project context..." rows={3} />
+              <div className="space-y-2">
+                <Label htmlFor="workspace-desc">Description (optional)</Label>
+                <Textarea id="workspace-desc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Project context..." rows={3} />
               </div>
             </div>
             <DialogFooter>
@@ -123,9 +148,15 @@ export default function WorkspacesPage() {
       </div>
 
       {workspaces.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground border rounded-xl border-dashed">
-          <FolderOpen className="h-12 w-12 mb-4 opacity-30" />
-          <p>No workspaces yet. Create one to get started.</p>
+        <div className="flex flex-col items-center justify-center py-20 px-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/20 text-center animate-fade-in-up">
+          <div className="mb-4 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/10">
+            <FolderOpen className="h-12 w-12 text-primary/60" strokeWidth={1.5} />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Create your first workspace</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mb-6">Workspaces help you organize prompts by project, team, or context. Get started by creating one.</p>
+          <Button className="bg-primary text-primary-foreground border-0 hover:bg-primary/90" onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> New Workspace
+          </Button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

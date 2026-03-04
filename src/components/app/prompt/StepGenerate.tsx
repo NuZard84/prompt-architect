@@ -193,13 +193,13 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-semibold">Generated Prompt</span>
           <div className="flex gap-1">
-            <Button variant="ghost" size="sm" onClick={handleCopy}>
+            <Button variant="ghost" size="sm" onClick={handleCopy} aria-label={copied ? "Copied!" : "Copy prompt"}>
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => handleDownload("md")}>
+            <Button variant="ghost" size="sm" onClick={() => handleDownload("md")} aria-label="Download as Markdown">
               <Download className="h-3.5 w-3.5" />
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleSave} disabled={saved}>
+            <Button variant="ghost" size="sm" onClick={handleSave} disabled={saved} aria-label={saved ? "Saved" : "Save prompt"}>
               <Save className="h-3.5 w-3.5" />
             </Button>
           </div>

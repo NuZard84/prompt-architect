@@ -38,7 +38,7 @@ export function StepIntent({ state, update, onNext }: Props) {
               key={i}
               variant={state.intent === i ? "default" : "outline"}
               className={`cursor-pointer px-3 py-1.5 text-sm transition-all ${
-                state.intent === i ? "gradient-bg text-primary-foreground border-0" : "hover:border-primary/50"
+                state.intent === i ? "bg-primary text-primary-foreground border-0" : "hover:border-primary/50"
               }`}
               onClick={() => update({ intent: i })}
             >
@@ -49,7 +49,7 @@ export function StepIntent({ state, update, onNext }: Props) {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={onNext} disabled={!canProceed} className="gradient-bg text-primary-foreground border-0">
+        <Button onClick={onNext} disabled={!canProceed} className="bg-primary text-primary-foreground border-0 hover:bg-primary/90">
           Continue <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

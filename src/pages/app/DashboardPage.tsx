@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Brain, Zap, FolderOpen, BarChart3, Layout } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, Brain, Zap, FolderOpen, BarChart3, Layout, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -28,11 +29,11 @@ type DashboardData = {
 };
 
 const CHART_COLORS = [
-  "hsl(230, 80%, 56%)",
-  "hsl(260, 70%, 58%)",
-  "hsl(200, 70%, 50%)",
+  "hsl(202, 52%, 49%)",   /* Medium Blue #3c8dbc */
+  "hsl(174, 62%, 47%)",   /* Light Cyan #2ec4b6 */
+  "hsl(214, 57%, 45%)",   /* Dark Teal variant */
   "hsl(340, 70%, 55%)",
-  "hsl(160, 60%, 45%)",
+  "hsl(174, 50%, 55%)",   /* Cyan lighter */
 ];
 
 export default function DashboardPage() {
@@ -137,8 +138,25 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="mx-auto max-w-6xl space-y-8">
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-6 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card><CardContent className="p-6"><Skeleton className="h-[200px] w-full" /></CardContent></Card>
+          <Card><CardContent className="p-6"><Skeleton className="h-[200px] w-full" /></CardContent></Card>
+        </div>
       </div>
     );
   }
@@ -147,9 +165,18 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Analytics & workspace overview</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold font-display">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Analytics & workspace overview</p>
+        </div>
+        <Button
+          onClick={() => navigate("/app/workspaces")}
+          className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shrink-0"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          New Prompt
+        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -208,7 +235,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
                 <YAxis tick={{ fontSize: 10 }} className="fill-muted-foreground" />
                 <Tooltip />
-                <Line type="monotone" dataKey="prompts" stroke="hsl(230, 80%, 56%)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="prompts" stroke="hsl(202, 52%, 49%)" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -218,11 +245,20 @@ export default function DashboardPage() {
       {/* Workspace Activity */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Workspace Activity</CardTitle>
+          <CardTitle className="text-sm font-display">Workspace Activity</CardTitle>
         </CardHeader>
         <CardContent>
           {data.workspaceActivity.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No workspaces yet</p>
+            <div className="flex flex-col items-center py-12 text-center">
+              <div className="rounded-2xl bg-primary/5 p-4 mb-4 ring-1 ring-primary/10">
+                <FolderOpen className="h-10 w-10 text-primary/60" strokeWidth={1.5} />
+              </div>
+              <p className="text-sm font-medium mb-1">No workspaces yet</p>
+              <p className="text-xs text-muted-foreground mb-4">Create a workspace to start building prompts</p>
+              <Button variant="outline" size="sm" onClick={() => navigate("/app/workspaces")}>
+                Go to Workspaces
+              </Button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
