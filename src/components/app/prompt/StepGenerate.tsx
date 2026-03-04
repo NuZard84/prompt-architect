@@ -15,14 +15,36 @@ type Props = {
   activeWorkspace?: Workspace | null;
 };
 
+const SECTION_MAP: Record<string, string> = {
+  objective: "Objective", current_context: "Current Context", target_outcome: "Target Outcome",
+  constraints: "Constraints", implementation_plan: "Implementation Plan",
+  code_level_instructions: "Code-Level Instructions", risk_edge_cases: "Risk & Edge Cases",
+  testing_plan: "Testing Plan", rollback_plan: "Rollback Plan", validation_checklist: "Final Validation Checklist",
+};
+
 function formatStructured(s: Record<string, string>): string {
-  const sectionMap: Record<string, string> = {
-    objective: "Objective", current_context: "Current Context", target_outcome: "Target Outcome",
-    constraints: "Constraints", implementation_plan: "Implementation Plan",
-    code_level_instructions: "Code-Level Instructions", risk_edge_cases: "Risk & Edge Cases",
-    testing_plan: "Testing Plan", rollback_plan: "Rollback Plan", validation_checklist: "Final Validation Checklist",
-  };
-  return Object.entries(sectionMap).map(([key, title]) => `## ${title}\n${s[key] || "N/A"}`).join("\n\n");
+  return Object.entries(s).map(([key, value]) => {
+    const title = SECTION_MAP[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    return `## ${title}\n${value || "N/A"}`;
+  }).join("\n\n");
+}
+
+function tryParseToMarkdown(raw: string): string | null {
+  try {
+    let cleaned = raw.trim();
+    if (cleaned.startsWith("```")) cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    if (!cleaned.startsWith("{")) return null;
+    const parsed = JSON.parse(cleaned);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const flat: Record<string, string> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof k === "string" && (typeof v === "string" || typeof v === "number")) flat[k] = String(v);
+    }
+    if (Object.keys(flat).length === 0) return null;
+    return formatStructured(flat);
+  } catch {
+    return null;
+  }
 }
 
 export function StepGenerate({ state, update, onReset, activeWorkspace }: Props) {
@@ -65,9 +87,12 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
       }
 
       const data = await res.json();
-      const output = data.structured
-        ? `# AI Prompt — ${state.intent}\n**Target Agent:** ${state.targetAgent}\n**Output Format:** ${state.outputFormat}\n\n${formatStructured(data.structured)}`
-        : data.raw || "No output generated";
+      const structuredMarkdown = data.structured
+        ? formatStructured(data.structured)
+        : tryParseToMarkdown(data.raw || "");
+      const output = structuredMarkdown
+        ? `# AI Prompt — ${state.intent}\n**Target Agent:** ${state.targetAgent}\n**Output Format:** ${state.outputFormat}\n\n${structuredMarkdown}`
+        : (data.raw || "No output generated");
 
       update({ generatedOutput: output });
       setProvider(data.provider === "custom" ? "Gemini (Your Key)" : data.provider === "platform_fallback" ? "Gemini (Fallback)" : "Gemini (Platform)");
