@@ -84,11 +84,11 @@ export default function WorkspaceHistoryPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/app/workspace/${workspaceId}`)}>
+        <Button variant="outline" size="icon" onClick={() => navigate(`/app/workspace/${workspaceId}`)} className="rounded-lg">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold font-display">Workspace History</h1>
+          <h1 className="text-3xl font-bold font-display tracking-tight">Workspace History</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} prompt{filtered.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function WorkspaceHistoryPage() {
       <div className="flex gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search prompts..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <Input placeholder="Search prompts..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 rounded-lg" />
         </div>
         {models.length > 0 && (
           <Select value={modelFilter} onValueChange={setModelFilter}>
@@ -116,9 +116,9 @@ export default function WorkspaceHistoryPage() {
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/20 text-center animate-fade-in-up">
-          <div className="mb-4 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/10">
-            <FileText className="h-12 w-12 text-primary/60" strokeWidth={1.5} />
+        <div className="flex flex-col items-center justify-center py-24 px-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/20 text-center animate-fade-in-up">
+          <div className="mb-5 rounded-2xl bg-primary/10 p-5 ring-1 ring-primary/20">
+            <FileText className="h-14 w-14 text-primary" strokeWidth={1.5} />
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-1">No prompts yet</h3>
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
@@ -132,7 +132,7 @@ export default function WorkspaceHistoryPage() {
           )}
         </div>
       ) : (
-        <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -147,7 +147,7 @@ export default function WorkspaceHistoryPage() {
               </thead>
               <tbody>
                 {filtered.map((p) => (
-                  <tr key={p.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                  <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="p-3 font-medium max-w-[200px] truncate">{p.title}</td>
                     <td className="p-3 text-muted-foreground text-xs">{getTemplateName(p.template_id)}</td>
                     <td className="p-3"><Badge variant="secondary" className="text-[10px]">{p.model_used || "Platform"}</Badge></td>

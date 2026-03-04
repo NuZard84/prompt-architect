@@ -101,6 +101,14 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        "cursor-blink": {
+          "0%, 50%": { opacity: "1" },
+          "51%, 100%": { opacity: "0" },
+        },
+        "shimmer-sweep": {
+          "0%": { backgroundPosition: "200% 0" },
+          "100%": { backgroundPosition: "-200% 0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -110,6 +118,8 @@ export default {
         "shimmer": "shimmer 1.5s ease-in-out infinite",
         "fade-in-up": "fade-in-up 0.4s ease-out forwards",
         "sweep-transform": "sweep-transform 1.2s ease-in-out forwards",
+        "cursor-blink": "cursor-blink 1s step-end infinite",
+        "shimmer-sweep": "shimmer-sweep 3s ease-in-out infinite",
       },
     },
   },

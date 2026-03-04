@@ -1,12 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, Fragment } from "react";
 import { Button } from "@/components/ui/button";
-import { Copy, Download, RotateCcw, Save, Check, Loader2, Sparkles } from "lucide-react";
+import { Copy, Download, RotateCcw, Save, Check, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { PromptState } from "./PromptWizard";
 import type { Workspace } from "@/contexts/WorkspaceContext";
+
+const SECTION_ORDER = [
+  "Objective",
+  "Current Context",
+  "Target Outcome",
+  "Constraints",
+  "Implementation Plan",
+  "Code-Level Instructions",
+  "Risk & Edge Cases",
+  "Testing Plan",
+  "Rollback Plan",
+  "Final Validation Checklist",
+];
 
 type Props = {
   state: PromptState;
@@ -51,15 +64,33 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [generatingLine, setGeneratingLine] = useState(0);
   const [provider, setProvider] = useState("");
   const [tokenData, setTokenData] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number; latencyMs: number }>({ inputTokens: 0, outputTokens: 0, totalTokens: 0, latencyMs: 0 });
   const [error, setError] = useState("");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
   const { user, session } = useAuth();
 
   useEffect(() => {
     if (!state.generatedOutput) generateWithAI();
   }, []);
+
+  // Staggered line-by-line reveal while loading
+  useEffect(() => {
+    if (!loading) {
+      setGeneratingLine(0);
+      return;
+    }
+    setGeneratingLine(0);
+    const totalLines = 3 + SECTION_ORDER.length * 2; // intro + each section (header + content)
+    intervalRef.current = setInterval(() => {
+      setGeneratingLine((prev) => Math.min(prev + 1, totalLines));
+    }, 350);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [loading]);
 
   const generateWithAI = async () => {
     if (!session?.access_token) return;
@@ -148,10 +179,71 @@ export function StepGenerate({ state, update, onReset, activeWorkspace }: Props)
   };
 
   if (loading) {
+    const introLines = [
+      `# AI Prompt — ${state.intent}`,
+      `**Target Agent:** ${state.targetAgent}`,
+      `**Output Format:** ${state.outputFormat}`,
+    ];
+    let lineIndex = 0;
+    const shouldShow = (n: number) => generatingLine > n;
+
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground text-sm">Generating with AI...</p>
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+          </span>
+          <span>Generating prompt with AI...</span>
+        </div>
+
+        <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+          <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30">
+            <span className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+              Generating
+            </span>
+          </div>
+          <pre className="p-6 text-sm font-mono whitespace-pre-wrap leading-relaxed max-h-[500px] overflow-auto text-foreground min-h-[320px]">
+            {introLines.map((line, i) =>
+              shouldShow(lineIndex++) ? (
+                <span key={i} className="block animate-fade-in-up">
+                  {line}
+                </span>
+              ) : null
+            )}
+            {shouldShow(lineIndex++) && <span className="block animate-fade-in-up" />}
+            {SECTION_ORDER.map((title, i) => {
+              const headerVisible = shouldShow(lineIndex++);
+              const contentVisible = shouldShow(lineIndex++);
+              if (!headerVisible && !contentVisible) return <Fragment key={title} />;
+              const currentSection = generatingLine > 5 ? Math.min(Math.floor((generatingLine - 6) / 2), SECTION_ORDER.length - 1) : -1;
+              const isActive = contentVisible && i === currentSection;
+              return (
+                <span key={title} className="block">
+                  {headerVisible && (
+                    <span className="block animate-fade-in-up">## {title}</span>
+                  )}
+                  {contentVisible && (
+                    <span className="flex items-center gap-1 mt-1 mb-3 animate-fade-in-up">
+                      <span
+                        className="h-3 flex-1 max-w-full rounded-md animate-shimmer-sweep"
+                        style={{
+                          background:
+                            "linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--muted)) 35%, hsl(var(--muted-foreground) / 0.25) 50%, hsl(var(--muted)) 65%, hsl(var(--muted)) 100%)",
+                          backgroundSize: "200% 100%",
+                        }}
+                      />
+                      {isActive && (
+                        <span className="inline-block w-2 h-4 bg-primary animate-cursor-blink ml-0.5 shrink-0" />
+                      )}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+          </pre>
+        </div>
       </div>
     );
   }

@@ -6,10 +6,10 @@ import { AppTopBar } from "@/components/app/AppTopBar";
 export function AppLayout() {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center border-b px-4 gap-3 bg-card">
+        <div className="flex-1 flex flex-col min-w-0 relative">
+          <header className="sticky top-0 z-40 h-14 flex items-center border-b px-4 gap-3 bg-card/80 backdrop-blur-md">
             <SidebarTrigger />
             <AppTopBar />
           </header>

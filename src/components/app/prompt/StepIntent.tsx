@@ -49,7 +49,7 @@ export function StepIntent({ state, update, onNext }: Props) {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={onNext} disabled={!canProceed} className="bg-primary text-primary-foreground border-0 hover:bg-primary/90">
+        <Button onClick={onNext} disabled={!canProceed} className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shadow-md shadow-primary/20">
           Continue <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

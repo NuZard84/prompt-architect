@@ -82,10 +82,12 @@ export function PromptWizard({ activeWorkspace }: Props) {
           {steps.map((s, i) => (
             <div key={s} className="flex items-center">
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
-                  i <= step
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold transition-all ${
+                  i < step
                     ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground"
+                    : i === step
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
                 {i + 1}

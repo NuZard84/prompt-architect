@@ -124,7 +124,7 @@ export default function WorkspaceDetailPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{workspace.name}</h1>
+          <h1 className="text-3xl font-bold font-display tracking-tight">{workspace.name}</h1>
           {workspace.description && (
             <p className="text-muted-foreground mt-1 text-sm">{workspace.description}</p>
           )}
@@ -141,12 +141,12 @@ export default function WorkspaceDetailPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/app/workspace/${workspaceId}/history`)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/app/workspace/${workspaceId}/history`)} className="border-primary/30">
             <Clock className="mr-2 h-4 w-4" /> History
           </Button>
           <Button
             size="sm"
-            className="bg-primary text-primary-foreground border-0 hover:bg-primary/90"
+            className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shadow-md shadow-primary/20"
             onClick={handleGatherContext}
             disabled={gatheringContext}
           >
@@ -158,7 +158,7 @@ export default function WorkspaceDetailPage() {
 
       {/* Context Toggle */}
       {contextSummary && (
-        <div className="mb-6 rounded-lg border p-4 bg-card">
+        <div className="mb-6 rounded-xl border p-5 bg-card shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />

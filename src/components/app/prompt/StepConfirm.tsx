@@ -23,8 +23,8 @@ export function StepConfirm({ state, onNext, onBack }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border bg-card p-6 space-y-4">
-        <h3 className="font-semibold text-lg">Review Your Configuration</h3>
+      <div className="rounded-xl border bg-card p-6 space-y-4 shadow-sm">
+        <h3 className="font-semibold text-lg font-display">Review Your Configuration</h3>
         {sections.map((s) => (
           <div key={s.label} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-4">
             <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">{s.label}</span>
@@ -45,7 +45,7 @@ export function StepConfirm({ state, onNext, onBack }: Props) {
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <Button onClick={onNext} className="bg-primary text-primary-foreground border-0 hover:bg-primary/90">
+        <Button onClick={onNext} className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shadow-lg shadow-primary/20">
           <Sparkles className="mr-2 h-4 w-4" /> Generate Prompt
         </Button>
       </div>

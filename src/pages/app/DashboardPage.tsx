@@ -167,12 +167,12 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-display">Dashboard</h1>
+          <h1 className="text-3xl font-bold font-display tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Analytics & workspace overview</p>
         </div>
         <Button
           onClick={() => navigate("/app/workspaces")}
-          className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shrink-0"
+          className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shrink-0 shadow-lg shadow-primary/20"
         >
           <Plus className="mr-2 h-4 w-4" />
           New Prompt
@@ -188,13 +188,15 @@ export default function DashboardPage() {
           { label: "Top Model", value: data.mostUsedModel, icon: BarChart3 },
           { label: "Top Template", value: data.mostUsedTemplate, icon: Layout },
         ].map((item) => (
-          <Card key={item.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <item.icon className="h-4 w-4" />
-                <span className="text-xs">{item.label}</span>
+          <Card key={item.label} className="transition-all hover:shadow-md hover:border-primary/20 overflow-hidden group">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <div className="rounded-lg bg-primary/10 p-1.5 text-primary group-hover:bg-primary/15 transition-colors">
+                  <item.icon className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium">{item.label}</span>
               </div>
-              <p className="text-lg font-bold truncate">{item.value}</p>
+              <p className="text-xl font-bold font-display truncate">{item.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -202,9 +204,9 @@ export default function DashboardPage() {
 
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Model Distribution</CardTitle>
+            <CardTitle className="text-base font-display">Model Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             {data.modelDistribution.length === 0 ? (
@@ -224,9 +226,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Daily Usage (30 days)</CardTitle>
+            <CardTitle className="text-base font-display">Daily Usage (30 days)</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
@@ -243,9 +245,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Workspace Activity */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-display">Workspace Activity</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-display">Workspace Activity</CardTitle>
         </CardHeader>
         <CardContent>
           {data.workspaceActivity.length === 0 ? (
@@ -274,14 +276,14 @@ export default function DashboardPage() {
                 </thead>
                 <tbody>
                   {data.workspaceActivity.map((ws) => (
-                    <tr key={ws.id} className="border-b last:border-0">
+                    <tr key={ws.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="py-3 font-medium">{ws.name}</td>
                       <td className="py-3">{ws.promptCount}</td>
                       <td className="py-3">{ws.tokensUsed.toLocaleString()}</td>
                       <td className="py-3 text-muted-foreground">{new Date(ws.lastActive).toLocaleDateString()}</td>
                       <td className="py-3"><Badge variant="secondary" className="text-[10px]">{ws.defaultModel}</Badge></td>
                       <td className="py-3">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/app/workspace/${ws.id}`)}>
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/app/workspace/${ws.id}`)} className="text-primary border-primary/30 hover:bg-primary/10">
                           Open
                         </Button>
                       </td>

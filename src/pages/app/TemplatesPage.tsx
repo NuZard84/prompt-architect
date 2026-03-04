@@ -1,11 +1,22 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Layout, Cpu, Zap, Bug, Code2, Palette, TestTube, BookOpen, Gauge, Copy, Check } from "lucide-react";
+import { Layout, Cpu, Zap, Bug, Code2, Palette, TestTube, BookOpen, Gauge, Trash2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const intentIcons: Record<string, React.ElementType> = {
@@ -52,7 +63,7 @@ type Template = {
 
 export default function TemplatesPage() {
   const { toast } = useToast();
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ["templates"],
@@ -66,35 +77,38 @@ export default function TemplatesPage() {
     },
   });
 
-  const handleDuplicate = async (template: Template) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.from("prompt_templates").insert({
-      name: `${template.name} (Copy)`,
-      description: template.description,
-      type: "user",
-      user_id: user.id,
-      intent_type: template.intent_type,
-      clarification_schema: template.clarification_schema as any,
-      output_structure_schema: template.output_structure_schema as any,
-      default_constraints: template.default_constraints as any,
-      model_compatibility: template.model_compatibility,
-      context_depth: template.context_depth,
-    });
+  const handleDelete = async (template: Template) => {
+    if (template.type !== "user") return;
+    const { error } = await supabase.from("prompt_templates").delete().eq("id", template.id);
     if (error) {
-      toast({ title: "Error duplicating", description: error.message, variant: "destructive" });
+      toast({ title: "Error deleting", description: error.message, variant: "destructive" });
     } else {
-      setCopiedId(template.id);
-      setTimeout(() => setCopiedId(null), 2000);
-      toast({ title: "Template duplicated!" });
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      queryClient.invalidateQueries({ queryKey: ["templates-selector"] });
+      toast({ title: "Template deleted" });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-10">
+          <Skeleton className="h-10 w-64 mb-2" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="rounded-xl border bg-card p-6 space-y-4">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <Skeleton className="h-5 w-4/5" />
+              <Skeleton className="h-4 w-full" />
+              <div className="flex gap-2">
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-5 w-14" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -104,43 +118,27 @@ export default function TemplatesPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Prompt Templates</h1>
-        <p className="text-muted-foreground mt-1">
-          Structured prompt blueprints — select one in the Workspace to guide your generation.
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold font-display tracking-tight">Prompt Templates</h1>
+        <p className="text-muted-foreground mt-1 max-w-2xl">
+          Structured prompt blueprints. Select one in the Workspace to guide your generation. Custom templates coming soon.
         </p>
       </div>
 
       {/* System Templates */}
-      <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">System Templates</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="mb-12">
+        <h2 className="text-lg font-semibold font-display mb-2">System Templates</h2>
+        <p className="text-sm text-muted-foreground mb-5">Ready-to-use templates for common development intents</p>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {systemTemplates.map((t) => {
             const Icon = intentIcons[t.intent_type || ""] || Layout;
             const colorClass = intentColors[t.intent_type || ""] || "bg-muted text-muted-foreground";
 
             return (
-              <Card key={t.id} className="group relative hover:shadow-md transition-shadow">
+              <Card key={t.id} className="group relative hover:shadow-lg hover:border-primary/20 transition-all hover:-translate-y-0.5 overflow-hidden">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className={`rounded-lg p-2 ${colorClass}`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDuplicate(t)}
-                          >
-                            {copiedId === t.id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Duplicate to My Templates</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <div className={`rounded-xl p-3 w-fit ${colorClass} ring-1 ring-black/5`}>
+                    <Icon className="h-5 w-5" />
                   </div>
                   <CardTitle className="text-base mt-2">{t.name}</CardTitle>
                   <CardDescription className="text-xs line-clamp-2">{t.description}</CardDescription>
@@ -167,22 +165,63 @@ export default function TemplatesPage() {
 
       {/* User Templates */}
       <section>
-        <h2 className="text-lg font-semibold mb-4">My Templates</h2>
+        <h2 className="text-lg font-semibold font-display mb-2">My Templates</h2>
+        <p className="text-sm text-muted-foreground mb-5">Your custom templates</p>
         {userTemplates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground border rounded-xl border-dashed">
-            <Layout className="h-10 w-10 mb-3 opacity-30" />
-            <p className="text-sm">No custom templates yet. Duplicate a system template to get started.</p>
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground border-2 rounded-xl border-dashed bg-muted/10">
+            <div className="rounded-2xl bg-primary/10 p-5 ring-1 ring-primary/20 mb-5">
+              <Layout className="h-14 w-14 text-primary/70" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">No custom templates yet</p>
+            <p className="text-sm mb-2">Custom template creation coming soon</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {userTemplates.map((t) => {
               const Icon = intentIcons[t.intent_type || ""] || Layout;
               const colorClass = intentColors[t.intent_type || ""] || "bg-muted text-muted-foreground";
               return (
-                <Card key={t.id} className="hover:shadow-md transition-shadow">
+                <Card key={t.id} className="group relative hover:shadow-lg hover:border-primary/20 transition-all hover:-translate-y-0.5 overflow-hidden">
                   <CardHeader className="pb-3">
-                    <div className={`rounded-lg p-2 w-fit ${colorClass}`}>
-                      <Icon className="h-5 w-5" />
+                    <div className="flex items-start justify-between">
+                      <div className={`rounded-xl p-3 w-fit ${colorClass} ring-1 ring-black/5`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <AlertDialog>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0 opacity-70 group-hover:opacity-100 group-hover:border-destructive/40 transition-all text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete this template?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  &quot;{t.name}&quot; will be permanently removed. This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(t)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          <TooltipContent>Delete template</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                     <CardTitle className="text-base mt-2">{t.name}</CardTitle>
                     <CardDescription className="text-xs line-clamp-2">{t.description}</CardDescription>

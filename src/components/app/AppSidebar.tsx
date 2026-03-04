@@ -1,6 +1,6 @@
+import type { LucideIcon } from "lucide-react";
 import { FolderOpen, Layout, Settings, BarChart3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -13,9 +13,22 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const items = [
+type NavItem = {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  isActive?: (pathname: string) => boolean;
+};
+
+const items: NavItem[] = [
   { title: "Dashboard", url: "/app/dashboard", icon: BarChart3 },
-  { title: "Workspaces", url: "/app/workspaces", icon: FolderOpen },
+  {
+    title: "Workspaces",
+    url: "/app/workspaces",
+    icon: FolderOpen,
+    isActive: (pathname) =>
+      pathname === "/app/workspaces" || pathname.startsWith("/app/workspace/"),
+  },
   { title: "Templates", url: "/app/templates", icon: Layout },
   { title: "Settings", url: "/app/settings", icon: Settings },
 ];
@@ -41,8 +54,9 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-muted/50"
-                      activeClassName="bg-primary/10 text-primary font-medium"
+                      isActive={item.isActive}
+                      className="hover:bg-muted/50 transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-medium border-l-2 border-l-primary"
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}

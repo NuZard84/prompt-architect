@@ -109,12 +109,12 @@ export default function WorkspacesPage() {
     <div className="mx-auto max-w-5xl">
       <div className="flex items-start justify-between mb-8 gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold font-display">Workspaces</h1>
+          <h1 className="text-3xl font-bold font-display tracking-tight">Workspaces</h1>
           <p className="text-muted-foreground mt-1">Organize prompts by project, team, or context.</p>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary text-primary-foreground border-0 hover:bg-primary/90">
+            <Button className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shadow-lg shadow-primary/20">
               <Plus className="mr-2 h-4 w-4" /> New Workspace
             </Button>
           </DialogTrigger>
@@ -148,33 +148,33 @@ export default function WorkspacesPage() {
       </div>
 
       {workspaces.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/20 text-center animate-fade-in-up">
-          <div className="mb-4 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/10">
-            <FolderOpen className="h-12 w-12 text-primary/60" strokeWidth={1.5} />
+        <div className="flex flex-col items-center justify-center py-24 px-8 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/20 text-center animate-fade-in-up">
+          <div className="mb-5 rounded-2xl bg-primary/10 p-5 ring-1 ring-primary/20">
+            <FolderOpen className="h-14 w-14 text-primary" strokeWidth={1.5} />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">Create your first workspace</h3>
-          <p className="text-sm text-muted-foreground max-w-sm mb-6">Workspaces help you organize prompts by project, team, or context. Get started by creating one.</p>
-          <Button className="bg-primary text-primary-foreground border-0 hover:bg-primary/90" onClick={() => setCreateDialogOpen(true)}>
+          <h3 className="text-xl font-semibold font-display text-foreground mb-2">Create your first workspace</h3>
+          <p className="text-sm text-muted-foreground max-w-md mb-8">Workspaces help you organize prompts by project, team, or context. Get started by creating one.</p>
+          <Button className="bg-primary text-primary-foreground border-0 hover:bg-primary/90 shadow-lg shadow-primary/20" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New Workspace
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           {workspaces.map((ws) => (
             <Card
               key={ws.id}
-              className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30"
+              className="cursor-pointer transition-all hover:shadow-lg hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-0.5 group"
               onClick={() => navigate(`/app/workspace/${ws.id}`)}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center justify-between">
                   {ws.name}
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </CardTitle>
-                <CardDescription className="text-xs">{ws.description || "No description"}</CardDescription>
+                <CardDescription className="text-sm">{ws.description || "No description"}</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                   <Badge variant="secondary" className="text-[10px]">
                     {modelOptions.find((m) => m.value === ws.default_model)?.label || ws.default_model}
                   </Badge>

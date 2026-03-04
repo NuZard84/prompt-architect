@@ -117,11 +117,11 @@ export default function PromptDetailPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/app/workspace/${workspaceId}/history`)} aria-label="Back to history">
+        <Button variant="outline" size="icon" onClick={() => navigate(`/app/workspace/${workspaceId}/history`)} aria-label="Back to history" className="rounded-lg">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">{prompt.title}</h1>
+          <h1 className="text-2xl font-bold font-display tracking-tight">{prompt.title}</h1>
           <p className="text-xs text-muted-foreground">{new Date(prompt.created_at).toLocaleString()}</p>
         </div>
         <div className="flex gap-2">
@@ -162,14 +162,14 @@ export default function PromptDetailPage() {
 
       <div className="space-y-6">
         {/* Raw Input */}
-        <div className="rounded-xl border bg-card p-5">
-          <h3 className="text-sm font-semibold mb-2">Raw Input</h3>
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-semibold mb-3">Raw Input</h3>
           <pre className="text-sm font-mono whitespace-pre-wrap text-muted-foreground">{prompt.raw_input}</pre>
         </div>
 
         {/* Clarification Answers */}
         {Object.keys(options).length > 0 && (
-          <div className="rounded-xl border bg-card p-5">
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
             <h3 className="text-sm font-semibold mb-3">Configuration</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
               {Object.entries(options).map(([key, val]) => (
@@ -184,7 +184,7 @@ export default function PromptDetailPage() {
 
         {/* Token breakdown */}
         {(prompt.input_tokens > 0 || prompt.output_tokens > 0) && (
-          <div className="rounded-xl border bg-card p-5">
+          <div className="rounded-xl border bg-card p-6 shadow-sm">
             <h3 className="text-sm font-semibold mb-3">Token Breakdown</h3>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
@@ -205,8 +205,8 @@ export default function PromptDetailPage() {
 
         {/* Generated Output */}
         {prompt.generated_output && (
-          <div className="rounded-xl border bg-card overflow-hidden">
-            <div className="border-b px-4 py-3 flex items-center justify-between">
+          <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+            <div className="border-b px-5 py-3 flex items-center justify-between bg-muted/30">
               <span className="text-sm font-semibold">Generated Output</span>
               <Button variant="ghost" size="sm" onClick={handleCopy} aria-label={copied ? "Copied!" : "Copy output"}>
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
